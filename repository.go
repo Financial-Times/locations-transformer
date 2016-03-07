@@ -30,23 +30,23 @@ func newTmeRepository(client httpClient, tmeBaseURL string, userName string, pas
 }
 
 func (t *tmeRepository) getLocationsTaxonomy(startRecord int) (taxonomy, error) {
-
 	chanResponse := make(chan *response, slices)
-	var wg sync.WaitGroup
-	wg.Add(slices)
-	for i := 0; i < slices; i++ {
-		startPosition := startRecord + i * chunks
+	go func() {
+		var wg sync.WaitGroup
+		wg.Add(slices)
+		for i := 0; i < slices; i++ {
+			startPosition := startRecord + i * chunks
 
-		go func() {
-			tax, err := t.getLocationsInChunks(startPosition, chunks)
-			chanResponse <- &response{Taxonomy:tax, Err: err}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
+			go func(startPosition int) {
+				tax, err := t.getLocationsInChunks(startPosition, chunks)
+				chanResponse <- &response{Taxonomy:tax, Err: err}
+				wg.Done()
+			}(startPosition)
+		}
+		wg.Wait()
 
-	close(chanResponse)
-
+		close(chanResponse)
+	}()
 	terms := make([]term, 0, MaxRecords)
 	var err error = nil
 	for resp := range chanResponse {
