@@ -56,7 +56,7 @@ func main() {
 		}
 		c := &http.Client{
 			Transport: tr,
-			Timeout: time.Duration(15 * time.Second),
+			Timeout: time.Duration(60 * time.Second),
 		}
 
 		s, err := newLocationService(newTmeRepository(c, *tmeBaseURL, *username, *password), *baseURL)

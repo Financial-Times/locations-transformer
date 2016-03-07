@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
-const MaxRecords = 2000
+const MaxRecords = 10000
+const slices = 10
+const chunks = MaxRecords / slices
 const TaxonomyName = "GL"
 
 type repository interface {
@@ -27,7 +30,36 @@ func newTmeRepository(client httpClient, tmeBaseURL string, userName string, pas
 }
 
 func (t *tmeRepository) getLocationsTaxonomy(startRecord int) (taxonomy, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rs/authorityfiles/GL/terms?maximumRecords=%d&startRecord=%d", t.tmeBaseURL, MaxRecords, startRecord), nil)
+
+	chanResponse := make(chan *response, slices)
+	var wg sync.WaitGroup
+	wg.Add(slices)
+	for i := 0; i < slices; i++ {
+		startPosition := startRecord + i * chunks
+
+		go func() {
+			tax, err := t.getLocationsInChunks(startPosition, chunks)
+			chanResponse <- &response{Taxonomy:tax, Err: err}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	close(chanResponse)
+
+	terms := make([]term, 0, MaxRecords)
+	var err error = nil
+	for resp := range chanResponse {
+		terms = append(terms, resp.Taxonomy.Terms...)
+		if (resp.Err != nil) {
+			err = resp.Err
+		}
+	}
+	return taxonomy{Terms:terms}, err
+}
+
+func (t *tmeRepository) getLocationsInChunks(startPosition int, maxRecords int) (taxonomy, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rs/authorityfiles/GL/terms?maximumRecords=%d&startRecord=%d", t.tmeBaseURL, maxRecords, startPosition), nil)
 	if err != nil {
 		return taxonomy{}, err
 	}

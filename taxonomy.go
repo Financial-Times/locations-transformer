@@ -20,3 +20,8 @@ type variation struct {
 	Languages []string `xml:"languages>language"`
 }
 
+type response struct {
+	Taxonomy taxonomy
+	Err      error
+}
+

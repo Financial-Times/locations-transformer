@@ -34,11 +34,9 @@ func newLocationService(repo repository, baseURL string) (locationService, error
 
 func (s *locationServiceImpl) init() error {
 	s.IdMap = make(map[string]string)
-	//	responseCount := 255087
 	responseCount := 0
 	for {
 		tax, err := s.repository.getLocationsTaxonomy(responseCount)
-		log.Printf("TME returned %d taxonomies\n", len(tax.Terms))
 		if err != nil {
 			return err
 		}
