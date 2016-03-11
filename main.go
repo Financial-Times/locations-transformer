@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"crypto/tls"
 )
 
 func init() {
@@ -31,6 +30,12 @@ func main() {
 		Desc:   "TME password used for http basic authentication",
 		EnvVar: "TME_PASSWORD",
 	})
+	token := app.String(cli.StringOpt{
+		Name:   "token",
+		Value:  "",
+		Desc:   "Token to be used for accessig TME",
+		EnvVar: "TOKEN",
+	})
 	baseURL := app.String(cli.StringOpt{
 		Name:   "base-url",
 		Value:  "http://localhost:8080/transformers/locations/",
@@ -39,7 +44,7 @@ func main() {
 	})
 	tmeBaseURL := app.String(cli.StringOpt{
 		Name:   "tme-base-url",
-		Value:  "https://tme-live.internal.ft.com:40001",
+		Value:  "https://tme.ft.com",
 		Desc:   "TME base url",
 		EnvVar: "TME_BASE_URL",
 	})
@@ -49,17 +54,24 @@ func main() {
 		Desc:   "Port to listen on",
 		EnvVar: "PORT",
 	})
+	maxRecords := app.Int(cli.IntOpt{
+		Name:   "maxRecords",
+		Value:  int(DefaultMaxRecords),
+		Desc:   "Maximum records to be queried to TME",
+		EnvVar: "MAX_RECORDS",
+	})
+	slices := app.Int(cli.IntOpt{
+		Name:   "slices",
+		Value:  int(DefaultSlices),
+		Desc:   "Number of requests to be executed in parallel to TME",
+		EnvVar: "SLICES",
+	})
 
 	app.Action = func() {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
 		c := &http.Client{
-			Transport: tr,
 			Timeout: time.Duration(20 * time.Second),
 		}
-
-		s, err := newLocationService(newTmeRepository(c, *tmeBaseURL, *username, *password), *baseURL)
+		s, err := newLocationService(newTmeRepository(c, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices), *baseURL)
 		if err != nil {
 			log.Errorf("Error while creating LocationsService: [%v]", err.Error())
 		}

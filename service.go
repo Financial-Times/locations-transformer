@@ -1,9 +1,9 @@
 package main
 
 import (
-	"net/http"
-	"log"
 	"github.com/pborman/uuid"
+	"log"
+	"net/http"
 )
 
 type httpClient interface {
@@ -41,11 +41,12 @@ func (s *locationServiceImpl) init() error {
 		if err != nil {
 			return err
 		}
-		if (len(tax.Terms) < 1) {
+		if len(tax.Terms) < 1 {
+			log.Printf("Finished fetching locations from TME\n")
 			break
 		}
 		s.initLocationsMap(tax.Terms)
-		responseCount += MaxRecords
+		responseCount += s.repository.MaxRecords()
 	}
 	log.Printf("Added %d location links\n", len(s.locationLinks))
 	return nil

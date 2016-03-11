@@ -5,7 +5,6 @@ type location struct {
 	CanonicalName string `json:"canonicalName"`
 	TmeIdentifier string `json:"tmeIdentifier"`
 	Type          string `json:"type"`
-	Variations    []locationVariation `json:"variations"`
 }
 
 type locationVariation struct {

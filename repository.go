@@ -8,38 +8,51 @@ import (
 	"sync"
 )
 
-const MaxRecords = 10000
-const slices = 10
-const chunks = MaxRecords / slices
+const DefaultMaxRecords = 10000
+const DefaultSlices = 10
 const TaxonomyName = "GL"
 
 type repository interface {
 	getLocationsTaxonomy(int) (taxonomy, error)
 	getSingleLocationTaxonomy(string) (term, error)
+	MaxRecords() int
 }
 
 type tmeRepository struct {
-	httpClient httpClient
-	tmeBaseURL string
-	userName   string
-	password   string
+	httpClient   httpClient
+	tmeBaseURL   string
+	accessConfig tmeAccessConfig
+	maxRecords   int
+	slices       int
 }
 
-func newTmeRepository(client httpClient, tmeBaseURL string, userName string, password string) repository {
-	return &tmeRepository{httpClient: client, tmeBaseURL: tmeBaseURL, userName: userName, password: password}
+type tmeAccessConfig struct {
+	userName string
+	password string
+	token    string
+}
+
+func (t *tmeRepository) MaxRecords() int {
+	return t.maxRecords
+}
+
+func newTmeRepository(client httpClient, tmeBaseURL string, userName string, password string, token string, maxRecords int, slices int) repository {
+	return &tmeRepository{httpClient: client, tmeBaseURL: tmeBaseURL, accessConfig: tmeAccessConfig{userName: userName, password: password, token: token}, maxRecords: maxRecords, slices: slices}
 }
 
 func (t *tmeRepository) getLocationsTaxonomy(startRecord int) (taxonomy, error) {
-	chanResponse := make(chan *response, slices)
+	chunks := t.maxRecords / t.slices
+	chanResponse := make(chan *response, t.slices)
 	go func() {
 		var wg sync.WaitGroup
-		wg.Add(slices)
-		for i := 0; i < slices; i++ {
-			startPosition := startRecord + i * chunks
+		wg.Add(t.slices)
+		for i := 0; i < t.slices; i++ {
+			startPosition := startRecord + i*chunks
 
 			go func(startPosition int) {
 				tax, err := t.getLocationsInChunks(startPosition, chunks)
-				chanResponse <- &response{Taxonomy:tax, Err: err}
+
+				chanResponse <- &response{Taxonomy: tax, Err: err}
 				wg.Done()
 			}(startPosition)
 		}
@@ -47,15 +60,15 @@ func (t *tmeRepository) getLocationsTaxonomy(startRecord int) (taxonomy, error) 
 
 		close(chanResponse)
 	}()
-	terms := make([]term, 0, MaxRecords)
+	terms := make([]term, 0, t.maxRecords)
 	var err error = nil
 	for resp := range chanResponse {
 		terms = append(terms, resp.Taxonomy.Terms...)
-		if (resp.Err != nil) {
+		if resp.Err != nil {
 			err = resp.Err
 		}
 	}
-	return taxonomy{Terms:terms}, err
+	return taxonomy{Terms: terms}, err
 }
 
 func (t *tmeRepository) getLocationsInChunks(startPosition int, maxRecords int) (taxonomy, error) {
@@ -64,7 +77,8 @@ func (t *tmeRepository) getLocationsInChunks(startPosition int, maxRecords int) 
 		return taxonomy{}, err
 	}
 	req.Header.Add("Accept", "application/xml;charset=utf-8")
-	req.SetBasicAuth(t.userName, t.password)
+	req.SetBasicAuth(t.accessConfig.userName, t.accessConfig.password)
+	req.Header.Add("X-Coco-Auth", fmt.Sprintf("%v", t.accessConfig.token))
 
 	resp, err := t.httpClient.Do(req)
 	if err != nil {
@@ -95,7 +109,9 @@ func (t *tmeRepository) getSingleLocationTaxonomy(rawId string) (term, error) {
 		return term{}, err
 	}
 	req.Header.Add("Accept", "application/xml;charset=utf-8")
-	req.SetBasicAuth(t.userName, t.password)
+	req.SetBasicAuth(t.accessConfig.userName, t.accessConfig.password)
+	req.Header.Add("X-Coco-Auth", fmt.Sprintf("%v", t.accessConfig.token))
+
 	resp, err := t.httpClient.Do(req)
 	if err != nil {
 		return term{}, err
