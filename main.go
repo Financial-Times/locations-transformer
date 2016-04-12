@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/tme-reader"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
@@ -56,22 +57,24 @@ func main() {
 	})
 	maxRecords := app.Int(cli.IntOpt{
 		Name:   "maxRecords",
-		Value:  int(DefaultMaxRecords),
+		Value:  int(10000),
 		Desc:   "Maximum records to be queried to TME",
 		EnvVar: "MAX_RECORDS",
 	})
 	slices := app.Int(cli.IntOpt{
 		Name:   "slices",
-		Value:  int(DefaultSlices),
+		Value:  int(10),
 		Desc:   "Number of requests to be executed in parallel to TME",
 		EnvVar: "SLICES",
 	})
+
+	tmeTaxonomyName := "GL"
 
 	app.Action = func() {
 		c := &http.Client{
 			Timeout: time.Duration(20 * time.Second),
 		}
-		s, err := newLocationService(newTmeRepository(c, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices), *baseURL)
+		s, err := newLocationService(tme.NewTmeRepository(c, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices, tmeTaxonomyName), *baseURL, tmeTaxonomyName, *maxRecords)
 		if err != nil {
 			log.Errorf("Error while creating LocationsService: [%v]", err.Error())
 		}

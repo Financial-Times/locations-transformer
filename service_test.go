@@ -25,7 +25,7 @@ func TestGetLocations(t *testing.T) {
 
 	for _, test := range tests {
 		repo := dummyRepo{tax: test.tax, err: test.err}
-		service, err := newLocationService(&repo, test.baseURL)
+		service, err := newLocationService(&repo, test.baseURL, "GL", 10000)
 		actualLocations, found := service.getLocations()
 		assert.Equal(test.locations, actualLocations, fmt.Sprintf("%s: Expected locations link incorrect", test.name))
 		assert.Equal(test.found, found)
@@ -51,7 +51,7 @@ func TestGetLocationByUuid(t *testing.T) {
 	}
 	for _, test := range tests {
 		repo := dummyRepo{tax: test.tax, err: test.err}
-		service, err := newLocationService(&repo, "")
+		service, err := newLocationService(&repo, "", "GL", 10000)
 		actualLocation, found := service.getLocationByUUID(test.uuid)
 		assert.Equal(test.location, actualLocation, fmt.Sprintf("%s: Expected location incorrect", test.name))
 		assert.Equal(test.found, found)
@@ -64,16 +64,25 @@ type dummyRepo struct {
 	err error
 }
 
-func (d *dummyRepo) getLocationsTaxonomy(startRecord int) (taxonomy, error) {
+func (d *dummyRepo) GetTmeTermsFromIndex(startRecord int) ([]byte, error) {
 	if startRecord > 0 {
-		return taxonomy{}, d.err
+		return []byte{}, d.err
 	}
-	return d.tax, d.err
-}
-func (d *dummyRepo) getSingleLocationTaxonomy(uuid string) (term, error) {
-	return d.tax.Terms[0], d.err
+	bytes, err := ToByte(d.tax)
+	if err != nil {
+		return bytes, err
+	}
+	return bytes, d.err
 }
 
-func (d *dummyRepo) MaxRecords() int {
-	return 1
+func (t *dummyRepo) GetTmeTermsInChunks(startPosition int, maxRecords int) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (d *dummyRepo) GetTmeTermById(uuid string) ([]byte, error) {
+	bytes, err := ToByte(d.tax.Terms[0])
+	if err != nil {
+		return bytes, err
+	}
+	return bytes, d.err
 }
