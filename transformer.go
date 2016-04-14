@@ -40,10 +40,10 @@ func (*locationTransformer) UnMarshallTaxonomy(contents []byte) ([]interface{}, 
 }
 
 func (*locationTransformer) UnMarshallTerm(content []byte) (interface{}, error) {
-	dummyTerm := term{}
-	err := xml.Unmarshal(content, &dummyTerm)
+	tmeTerm := term{}
+	err := xml.Unmarshal(content, &tmeTerm)
 	if err != nil {
 		return term{}, err
 	}
-	return dummyTerm, nil
+	return tmeTerm, nil
 }
