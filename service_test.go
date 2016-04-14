@@ -61,7 +61,7 @@ func TestGetLocationByUuid(t *testing.T) {
 
 type dummyRepo struct {
 	terms []term
-	err error
+	err   error
 }
 
 func (d *dummyRepo) GetTmeTermsFromIndex(startRecord int) ([]interface{}, error) {

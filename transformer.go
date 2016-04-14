@@ -24,7 +24,6 @@ func buildTmeIdentifier(rawId string, tmeTermTaxonomyName string) string {
 }
 
 type locationTransformer struct {
-
 }
 
 func (*locationTransformer) UnMarshallTaxonomy(contents []byte) ([]interface{}, error) {
