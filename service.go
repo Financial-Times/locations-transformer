@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Financial-Times/tme-reader/tmereader"
 	"github.com/pborman/uuid"
 	"log"
 	"net/http"
@@ -16,15 +17,17 @@ type locationService interface {
 }
 
 type locationServiceImpl struct {
-	repository    repository
+	repository    tmereader.Repository
 	baseURL       string
 	IdMap         map[string]string
 	locationLinks []locationLink
+	taxonomyName  string
+	maxTmeRecords int
 }
 
-func newLocationService(repo repository, baseURL string) (locationService, error) {
+func newLocationService(repo tmereader.Repository, baseURL string, taxonomyName string, maxTmeRecords int) (locationService, error) {
 
-	s := &locationServiceImpl{repository: repo, baseURL: baseURL}
+	s := &locationServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords}
 	err := s.init()
 	if err != nil {
 		return &locationServiceImpl{}, err
@@ -37,16 +40,17 @@ func (s *locationServiceImpl) init() error {
 	responseCount := 0
 	log.Printf("Fetching locations from TME\n")
 	for {
-		tax, err := s.repository.getLocationsTaxonomy(responseCount)
+		terms, err := s.repository.GetTmeTermsFromIndex(responseCount)
 		if err != nil {
 			return err
 		}
-		if len(tax.Terms) < 1 {
+
+		if len(terms) < 1 {
 			log.Printf("Finished fetching locations from TME\n")
 			break
 		}
-		s.initLocationsMap(tax.Terms)
-		responseCount += s.repository.MaxRecords()
+		s.initLocationsMap(terms)
+		responseCount += s.maxTmeRecords
 	}
 	log.Printf("Added %d location links\n", len(s.locationLinks))
 	return nil
@@ -64,16 +68,17 @@ func (s *locationServiceImpl) getLocationByUUID(uuid string) (location, bool) {
 	if !found {
 		return location{}, false
 	}
-	term, err := s.repository.getSingleLocationTaxonomy(rawId)
+	content, err := s.repository.GetTmeTermById(rawId)
 	if err != nil {
 		return location{}, false
 	}
-	return transformLocation(term), true
+	return transformLocation(content.(term), s.taxonomyName), true
 }
 
-func (s *locationServiceImpl) initLocationsMap(terms []term) {
-	for _, t := range terms {
-		tmeIdentifier := buildTmeIdentifier(t.RawID)
+func (s *locationServiceImpl) initLocationsMap(terms []interface{}) {
+	for _, iTerm := range terms {
+		t := iTerm.(term)
+		tmeIdentifier := buildTmeIdentifier(t.RawID, s.taxonomyName)
 		uuid := uuid.NewMD5(uuid.UUID{}, []byte(tmeIdentifier)).String()
 		s.IdMap[uuid] = t.RawID
 		s.locationLinks = append(s.locationLinks, locationLink{APIURL: s.baseURL + uuid})
