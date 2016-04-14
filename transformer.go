@@ -27,13 +27,17 @@ type locationTransformer struct {
 
 }
 
-func (*locationTransformer) UnMarshallTaxonomy(contents []byte) (interface{}, error) {
-	tax := taxonomy{}
-	err := xml.Unmarshal(contents, &tax)
+func (*locationTransformer) UnMarshallTaxonomy(contents []byte) ([]interface{}, error) {
+	taxonomy := taxonomy{}
+	err := xml.Unmarshal(contents, &taxonomy)
 	if err != nil {
-		return taxonomy{}, err
+		return nil, err
 	}
-	return tax, nil
+	var interfaces []interface{} = make([]interface{}, len(taxonomy.Terms))
+	for i, d := range taxonomy.Terms {
+		interfaces[i] = d
+	}
+	return interfaces, nil
 }
 
 func (*locationTransformer) UnMarshallTerm(content []byte) (interface{}, error) {
@@ -43,14 +47,4 @@ func (*locationTransformer) UnMarshallTerm(content []byte) (interface{}, error) 
 		return term{}, err
 	}
 	return dummyTerm, nil
-}
-
-func (d *locationTransformer) GetTermsFromTaxonomy(tax interface{}) (terms []interface{}) {
-
-	taxonomy := tax.(taxonomy)
-	var interfaces []interface{} = make([]interface{}, len(taxonomy.Terms))
-	for i, d := range taxonomy.Terms {
-		interfaces[i] = d
-	}
-	return interfaces
 }

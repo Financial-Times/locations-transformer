@@ -44,7 +44,6 @@ func (s *locationServiceImpl) init() error {
 		if err != nil {
 			return err
 		}
-		//taxonomy, err := readTmeTermsTaxonomy(taxonomyContent)
 
 		if len(terms) < 1 {
 			log.Printf("Finished fetching locations from TME\n")
