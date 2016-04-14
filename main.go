@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
-	"github.com/Financial-Times/tme-reader"
+	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
@@ -74,7 +74,10 @@ func main() {
 		c := &http.Client{
 			Timeout: time.Duration(20 * time.Second),
 		}
-		s, err := newLocationService(tme.NewTmeRepository(c, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices, tmeTaxonomyName), *baseURL, tmeTaxonomyName, *maxRecords)
+
+		mf := new(locationTransformer)
+
+		s, err := newLocationService(tmereader.NewTmeRepository(c, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices, tmeTaxonomyName, mf), *baseURL, tmeTaxonomyName, *maxRecords)
 		if err != nil {
 			log.Errorf("Error while creating LocationsService: [%v]", err.Error())
 		}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/xml"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -18,20 +17,9 @@ func TestTransform(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		bytes, err := ToByte(test.term)
-		assert.Equal(err, nil)
-
-		expectedLocation := transformLocation(bytes, "GL")
+		expectedLocation := transformLocation(test.term, "GL")
 
 		assert.Equal(test.location, expectedLocation, fmt.Sprintf("%s: Expected location incorrect", test.name))
 	}
 
-}
-
-func ToByte(termStruct interface{}) ([]byte, error) {
-	content, err := xml.Marshal(termStruct)
-	if err != nil {
-		return []byte{}, err
-	}
-	return content, nil
 }
