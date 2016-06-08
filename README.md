@@ -1,11 +1,14 @@
-# locations-transformer
+locations-transformer
+=====================
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/locations-transformer/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/locations-transformer/tree/master)
 
 Retrieves Locations taxonomy from TME and transforms the locations to the internal UP json model.
 The service exposes endpoints for getting all the locations and for getting location by uuid.
 
-# Usage
+Usage
+-----
+
 `go get github.com/Financial-Times/locations-transformer`
 
 `$GOPATH/bin/locations-transformer --port=8080 --base-url="http://localhost:8080/transformers/locations/" --tme-base-url="https://tme.ft.com" --tme-username="user" --tme-password="pass" --token="token"`
@@ -18,6 +21,11 @@ export|set TME_PASSWORD="pass"
 export|set TOKEN="token"
 $GOPATH/bin/locations-transformer
 ```
+
+    export TME_USERNAME="$(cat ~/.tme_username" \
+        && export TME_PASSWORD="$(cat ~/.tme_password" \
+        && export TOKEN="$(cat ~/.token)" \
+        && ./locations-transformer
 
 With Docker:
 
