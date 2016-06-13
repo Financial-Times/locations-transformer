@@ -6,12 +6,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 const testUUID = "bba39990-c78d-3629-ae83-808c333c6dbc"
-const getLocationsResponse = "[{\"apiUrl\":\"http://localhost:8080/transformers/locations/bba39990-c78d-3629-ae83-808c333c6dbc\"}]\n"
-const getLocationByUUIDResponse = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"canonicalName\":\"Metals Markets\",\"tmeIdentifier\":\"MTE3-U3ViamVjdHM=\",\"type\":\"Location\"}\n"
+const getLocationsResponse = `[{"apiUrl":"http://localhost:8080/transformers/locations/bba39990-c78d-3629-ae83-808c333c6dbc"}]`
+const getLocationByUUIDResponse = `{"uuid":"bba39990-c78d-3629-ae83-808c333c6dbc","alternativeIdentifiers":{"TME":["MTE3-U3ViamVjdHM="],"uuids":["bba39990-c78d-3629-ae83-808c333c6dbc"]},"prefLabel":"SomeLocation","type":"Location"}`
 
 func TestHandlers(t *testing.T) {
 	assert := assert.New(t)
@@ -23,7 +24,7 @@ func TestHandlers(t *testing.T) {
 		contentType  string // Contents of the Content-Type header
 		body         string
 	}{
-		{"Success - get location by uuid", newRequest("GET", fmt.Sprintf("/transformers/locations/%s", testUUID)), &dummyService{found: true, locations: []location{location{UUID: testUUID, CanonicalName: "Metals Markets", TmeIdentifier: "MTE3-U3ViamVjdHM=", Type: "Location"}}}, http.StatusOK, "application/json", getLocationByUUIDResponse},
+		{"Success - get location by uuid", newRequest("GET", fmt.Sprintf("/transformers/locations/%s", testUUID)), &dummyService{found: true, locations: []location{getDummyLocation(testUUID, "SomeLocation", "MTE3-U3ViamVjdHM=")}}, http.StatusOK, "application/json", getLocationByUUIDResponse},
 		{"Not found - get location by uuid", newRequest("GET", fmt.Sprintf("/transformers/locations/%s", testUUID)), &dummyService{found: false, locations: []location{location{}}}, http.StatusNotFound, "application/json", ""},
 		{"Success - get locations", newRequest("GET", "/transformers/locations"), &dummyService{found: true, locations: []location{location{UUID: testUUID}}}, http.StatusOK, "application/json", getLocationsResponse},
 		{"Not found - get locations", newRequest("GET", "/transformers/locations"), &dummyService{found: false, locations: []location{}}, http.StatusNotFound, "application/json", ""},
@@ -33,7 +34,7 @@ func TestHandlers(t *testing.T) {
 		rec := httptest.NewRecorder()
 		router(test.dummyService).ServeHTTP(rec, test.req)
 		assert.True(test.statusCode == rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
-		assert.Equal(test.body, rec.Body.String(), fmt.Sprintf("%s: Wrong body", test.name))
+		assert.Equal(strings.TrimSpace(test.body), strings.TrimSpace(rec.Body.String()), fmt.Sprintf("%s: Wrong body", test.name))
 	}
 }
 
@@ -68,4 +69,8 @@ func (s *dummyService) getLocations() ([]locationLink, bool) {
 
 func (s *dummyService) getLocationByUUID(uuid string) (location, bool) {
 	return s.locations[0], s.found
+}
+
+func (s *dummyService) checkConnectivity() error {
+	return nil
 }

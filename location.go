@@ -1,18 +1,15 @@
 package main
 
 type location struct {
-	UUID          string `json:"uuid"`
-	CanonicalName string `json:"canonicalName"`
-	TmeIdentifier string `json:"tmeIdentifier"`
-	Type          string `json:"type"`
+	UUID                   string                 `json:"uuid"`
+	AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers,omitempty"`
+	PrefLabel              string                 `json:"prefLabel"`
+	Type                   string                 `json:"type"`
 }
 
-type locationVariation struct {
-	Name      string   `json:"name"`
-	Weight    string   `json:"weight"`
-	Case      string   `json:"case"`
-	Accent    string   `json:"accent"`
-	Languages []string `json:"languages"`
+type alternativeIdentifiers struct {
+	TME   []string `json:"TME,omitempty"`
+	Uuids []string `json:"uuids,omitempty"`
 }
 
 type locationLink struct {
