@@ -79,7 +79,7 @@ func main() {
 		client := getResilientClient()
 
 		mf := new(locationTransformer)
-		s, err := newLocationService(tmereader.NewTmeRepository(client, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices, tmeTaxonomyName, &tmereader.KnowledgeBases{}, mf), *baseURL, tmeTaxonomyName, *maxRecords)
+		s, err := newLocationService(tmereader.NewTmeRepository(client, *tmeBaseURL, *username, *password, *token, *maxRecords, *slices, tmeTaxonomyName, &tmereader.AuthorityFiles{}, mf), *baseURL, tmeTaxonomyName, *maxRecords)
 		if err != nil {
 			log.Errorf("Error while creating LocationsService: [%v]", err.Error())
 		}
@@ -102,16 +102,20 @@ func main() {
 		http.Handle("/", m)
 
 		log.Printf("listening on %d", *port)
-		http.ListenAndServe(fmt.Sprintf(":%d", *port),
+		err = http.ListenAndServe(fmt.Sprintf(":%d", *port),
 			httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
 				httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), m)))
+		if err != nil {
+			log.Errorf("Error by listen and serve: %v", err.Error())
+		}
+
 	}
 	app.Run(os.Args)
 }
 
 func getResilientClient() *pester.Client {
 	tr := &http.Transport{
-		MaxIdleConnsPerHost: 32,
+		MaxIdleConnsPerHost: 128,
 		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 		Dial: (&net.Dialer{
 			Timeout:   30 * time.Second,

@@ -1,7 +1,7 @@
 package main
 
 type taxonomy struct {
-	Terms []term `xml:"category"`
+	Terms []term `xml:"term"`
 }
 
 //TODO revise fields

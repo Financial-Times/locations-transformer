@@ -1,5 +1,4 @@
 FROM alpine:3.3
-ADD . /locations-transformer/
 ADD *.go .git /locations-transformer/
 RUN apk add --update bash \
   && apk --update add git go bzr \
