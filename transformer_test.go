@@ -13,11 +13,21 @@ func TestTransform(t *testing.T) {
 		term     term
 		location location
 	}{
-		{"Trasform term to location", term{CanonicalName: "Banksville, New York", RawID: "Nstein_GL_US_NY_Municipality_942968"}, location{UUID: "095b89cd-4d4c-3195-ba78-e366fbe47291", CanonicalName: "Banksville, New York", TmeIdentifier: "TnN0ZWluX0dMX1VTX05ZX011bmljaXBhbGl0eV85NDI5Njg=-R0w=", Type: "Location"}},
+		{"Transform term to location", term{
+			CanonicalName: "Location1",
+			RawID:         "UjB4Zk1UWTBPRE0xLVIyVnVjbVZ6-R0w="},
+			location{
+				UUID:      "6334792f-baf0-3764-8936-fc4f240ca53c",
+				PrefLabel: "Location1",
+				AlternativeIdentifiers: alternativeIdentifiers{
+					TME:   []string{"VWpCNFprMVVXVEJQUkUweExWSXlWblZqYlZaNi1SMHc9-R0w="},
+					Uuids: []string{"6334792f-baf0-3764-8936-fc4f240ca53c"},
+				},
+				Type: "Location"}},
 	}
 
 	for _, test := range tests {
-		expectedLocation := transformLocation(test.term)
+		expectedLocation := transformLocation(test.term, "GL")
 		assert.Equal(test.location, expectedLocation, fmt.Sprintf("%s: Expected location incorrect", test.name))
 	}
 

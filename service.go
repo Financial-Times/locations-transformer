@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/pborman/uuid"
-	"log"
+	"github.com/Financial-Times/tme-reader/tmereader"
+	log "github.com/Sirupsen/logrus"
 	"net/http"
 )
 
@@ -13,18 +13,20 @@ type httpClient interface {
 type locationService interface {
 	getLocations() ([]locationLink, bool)
 	getLocationByUUID(uuid string) (location, bool)
+	checkConnectivity() error
 }
 
 type locationServiceImpl struct {
-	repository    repository
+	repository    tmereader.Repository
 	baseURL       string
-	IdMap         map[string]string
+	locationsMap  map[string]location
 	locationLinks []locationLink
+	taxonomyName  string
+	maxTmeRecords int
 }
 
-func newLocationService(repo repository, baseURL string) (locationService, error) {
-
-	s := &locationServiceImpl{repository: repo, baseURL: baseURL}
+func newLocationService(repo tmereader.Repository, baseURL string, taxonomyName string, maxTmeRecords int) (locationService, error) {
+	s := &locationServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords}
 	err := s.init()
 	if err != nil {
 		return &locationServiceImpl{}, err
@@ -33,22 +35,24 @@ func newLocationService(repo repository, baseURL string) (locationService, error
 }
 
 func (s *locationServiceImpl) init() error {
-	s.IdMap = make(map[string]string)
+	s.locationsMap = make(map[string]location)
 	responseCount := 0
 	log.Printf("Fetching locations from TME\n")
 	for {
-		tax, err := s.repository.getLocationsTaxonomy(responseCount)
+		terms, err := s.repository.GetTmeTermsFromIndex(responseCount)
 		if err != nil {
 			return err
 		}
-		if len(tax.Terms) < 1 {
+
+		if len(terms) < 1 {
 			log.Printf("Finished fetching locations from TME\n")
 			break
 		}
-		s.initLocationsMap(tax.Terms)
-		responseCount += s.repository.MaxRecords()
+		s.initLocationsMap(terms)
+		responseCount += s.maxTmeRecords
 	}
 	log.Printf("Added %d location links\n", len(s.locationLinks))
+
 	return nil
 }
 
@@ -60,22 +64,24 @@ func (s *locationServiceImpl) getLocations() ([]locationLink, bool) {
 }
 
 func (s *locationServiceImpl) getLocationByUUID(uuid string) (location, bool) {
-	rawId, found := s.IdMap[uuid]
-	if !found {
-		return location{}, false
-	}
-	term, err := s.repository.getSingleLocationTaxonomy(rawId)
-	if err != nil {
-		return location{}, false
-	}
-	return transformLocation(term), true
+	location, found := s.locationsMap[uuid]
+	return location, found
 }
 
-func (s *locationServiceImpl) initLocationsMap(terms []term) {
-	for _, t := range terms {
-		tmeIdentifier := buildTmeIdentifier(t.RawID)
-		uuid := uuid.NewMD5(uuid.UUID{}, []byte(tmeIdentifier)).String()
-		s.IdMap[uuid] = t.RawID
-		s.locationLinks = append(s.locationLinks, locationLink{APIURL: s.baseURL + uuid})
+func (s *locationServiceImpl) checkConnectivity() error {
+	// TODO: Can we just hit an endpoint to check if TME is available? Or do we need to make sure we get location taxonmies back?
+	//	_, err := s.repository.GetTmeTermsFromIndex()
+	//	if err != nil {
+	//		return err
+	//	}
+	return nil
+}
+
+func (s *locationServiceImpl) initLocationsMap(terms []interface{}) {
+	for _, iTerm := range terms {
+		t := iTerm.(term)
+		top := transformLocation(t, s.taxonomyName)
+		s.locationsMap[top.UUID] = top
+		s.locationLinks = append(s.locationLinks, locationLink{APIURL: s.baseURL + top.UUID})
 	}
 }
