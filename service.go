@@ -14,6 +14,9 @@ type locationService interface {
 	getLocations() ([]locationLink, bool)
 	getLocationByUUID(uuid string) (location, bool)
 	checkConnectivity() error
+	getLocationCount() int
+	getLocationIds() []string
+	reload() error
 }
 
 type locationServiceImpl struct {
@@ -84,4 +87,41 @@ func (s *locationServiceImpl) initLocationsMap(terms []interface{}) {
 		s.locationsMap[top.UUID] = top
 		s.locationLinks = append(s.locationLinks, locationLink{APIURL: s.baseURL + top.UUID})
 	}
+}
+
+func (s *locationServiceImpl) getLocationCount() int {
+	return len(s.locationLinks)
+}
+
+func (s *locationServiceImpl) getLocationIds() []string {
+	i := 0
+	keys := make([]string, len(s.locationsMap))
+
+	for k := range s.locationsMap {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+func (s *locationServiceImpl) reload() error {
+	s.locationsMap = make(map[string]location)
+	responseCount := 0
+	log.Println("Fetching locations from TME")
+	for {
+		terms, err := s.repository.GetTmeTermsFromIndex(responseCount)
+		if err != nil {
+			return err
+		}
+
+		if len(terms) < 1 {
+			log.Println("Finished fetching locations from TME")
+			break
+		}
+		s.initLocationsMap(terms)
+		responseCount += s.maxTmeRecords
+	}
+	log.Printf("Added %d location links\n", len(s.locationLinks))
+
+	return nil
 }
