@@ -14,7 +14,7 @@ const testUUID = "bba39990-c78d-3629-ae83-808c333c6dbc"
 const getLocationsResponse = `[{"apiUrl":"http://localhost:8080/transformers/locations/bba39990-c78d-3629-ae83-808c333c6dbc"}]`
 const getLocationByUUIDResponse = `{"uuid":"bba39990-c78d-3629-ae83-808c333c6dbc","alternativeIdentifiers":{"TME":["MTE3-U3ViamVjdHM="],"uuids":["bba39990-c78d-3629-ae83-808c333c6dbc"]},"prefLabel":"SomeLocation","type":"Location"}`
 const getLocationsCountResponse = `1`
-const getLocationsIdsResponse = `{"id":"b2a4204a-9295-4d2f-88db-a85cd0a91a8b"}`
+const getLocationsIdsResponse = `{"id":"bba39990-c78d-3629-ae83-808c333c6dbc"}`
 
 func TestHandlers(t *testing.T) {
 	assert := assert.New(t)
@@ -54,10 +54,10 @@ func router(s locationService) *mux.Router {
 	m := mux.NewRouter()
 	h := newLocationsHandler(s)
 	m.HandleFunc("/transformers/locations", h.getLocations).Methods("GET")
-	m.HandleFunc("/transformers/locations/{uuid}", h.getLocationByUUID).Methods("GET")
 	m.HandleFunc("/transformers/locations/__ids", h.getIds).Methods("GET")
 	m.HandleFunc("/transformers/locations/__count", h.getCount).Methods("GET")
 	m.HandleFunc("/transformers/locations/__reload", h.getIds).Methods("GET")
+	m.HandleFunc("/transformers/locations/{uuid}", h.getLocationByUUID).Methods("GET")
 	return m
 }
 
