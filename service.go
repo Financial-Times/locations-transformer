@@ -30,33 +30,11 @@ type locationServiceImpl struct {
 
 func newLocationService(repo tmereader.Repository, baseURL string, taxonomyName string, maxTmeRecords int) (locationService, error) {
 	s := &locationServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords}
-	err := s.init()
+	err := s.reload()
 	if err != nil {
 		return &locationServiceImpl{}, err
 	}
 	return s, nil
-}
-
-func (s *locationServiceImpl) init() error {
-	s.locationsMap = make(map[string]location)
-	responseCount := 0
-	log.Printf("Fetching locations from TME\n")
-	for {
-		terms, err := s.repository.GetTmeTermsFromIndex(responseCount)
-		if err != nil {
-			return err
-		}
-
-		if len(terms) < 1 {
-			log.Printf("Finished fetching locations from TME\n")
-			break
-		}
-		s.initLocationsMap(terms)
-		responseCount += s.maxTmeRecords
-	}
-	log.Printf("Added %d location links\n", len(s.locationLinks))
-
-	return nil
 }
 
 func (s *locationServiceImpl) getLocations() ([]locationLink, bool) {
