@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 )
 
 type locationsHandler struct {
@@ -41,6 +42,44 @@ func newLocationsHandler(service locationService) locationsHandler {
 func (h *locationsHandler) getLocations(writer http.ResponseWriter, req *http.Request) {
 	obj, found := h.service.getLocations()
 	writeJSONResponse(obj, found, writer)
+}
+
+func (h *locationsHandler) getCount(writer http.ResponseWriter, req *http.Request) {
+	count := h.service.getLocationCount()
+	_, err := writer.Write([]byte(strconv.Itoa(count)))
+	if err != nil {
+		log.Warnf("Couldn't write count to HTTP response. count=%d %v\n", count, err)
+		writer.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func (h *locationsHandler) getIds(writer http.ResponseWriter, req *http.Request) {
+	ids := h.service.getLocationIds()
+	writer.Header().Add("Content-Type", "text/plain")
+	if len(ids) == 0 {
+		writer.WriteHeader(http.StatusOK)
+		return
+	}
+	enc := json.NewEncoder(writer)
+	type locationId struct {
+		ID string `json:"id"`
+	}
+	for _, id := range ids {
+		rID := locationId{ID: id}
+		err := enc.Encode(rID)
+		if err != nil {
+			log.Warnf("Couldn't encode to HTTP response location with uuid=%s %v\n", id, err)
+			continue
+		}
+	}
+}
+
+func (h *locationsHandler) reload(writer http.ResponseWriter, req *http.Request) {
+	err := h.service.reload()
+	if err != nil {
+		log.Warnf("Problem reloading terms from TME: %v", err)
+		writer.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 func (h *locationsHandler) getLocationByUUID(writer http.ResponseWriter, req *http.Request) {

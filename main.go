@@ -97,6 +97,9 @@ func main() {
 		m.HandleFunc("/__gtg", h.GoodToGo)
 
 		m.HandleFunc("/transformers/locations", h.getLocations).Methods("GET")
+		m.HandleFunc("/transformers/locations/__count", h.getCount).Methods("GET")
+		m.HandleFunc("/transformers/locations/__ids", h.getIds).Methods("GET")
+		m.HandleFunc("/transformers/locations/__reload", h.reload).Methods("POST")
 		m.HandleFunc("/transformers/locations/{uuid}", h.getLocationByUUID).Methods("GET")
 
 		http.Handle("/", m)
