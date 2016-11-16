@@ -84,6 +84,8 @@ func (s *locationServiceImpl) getLocationIds() []string {
 
 func (s *locationServiceImpl) reload() error {
 	s.locationsMap = make(map[string]location)
+	var links []locationLink
+	s.locationLinks = links
 	responseCount := 0
 	log.Println("Fetching locations from TME")
 	for {
