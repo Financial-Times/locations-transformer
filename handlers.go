@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/Financial-Times/go-fthealth/v1a"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"net/http"
-	"strconv"
 )
 
 type locationsHandler struct {
@@ -61,11 +62,11 @@ func (h *locationsHandler) getIds(writer http.ResponseWriter, req *http.Request)
 		return
 	}
 	enc := json.NewEncoder(writer)
-	type locationId struct {
+	type locationID struct {
 		ID string `json:"id"`
 	}
 	for _, id := range ids {
-		rID := locationId{ID: id}
+		rID := locationID{ID: id}
 		err := enc.Encode(rID)
 		if err != nil {
 			log.Warnf("Couldn't encode to HTTP response location with uuid=%s %v\n", id, err)

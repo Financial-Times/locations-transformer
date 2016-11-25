@@ -3,12 +3,7 @@ package main
 import (
 	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
-	"net/http"
 )
-
-type httpClient interface {
-	Do(req *http.Request) (resp *http.Response, err error)
-}
 
 type locationService interface {
 	getLocations() ([]locationLink, bool)

@@ -3,8 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetLocations(t *testing.T) {
@@ -70,7 +71,7 @@ func (d *dummyRepo) GetTmeTermsFromIndex(startRecord int) ([]interface{}, error)
 	if startRecord > 0 {
 		return nil, d.err
 	}
-	var interfaces []interface{} = make([]interface{}, len(d.terms))
+	var interfaces = make([]interface{}, len(d.terms))
 	for i, data := range d.terms {
 		interfaces[i] = data
 	}
@@ -80,10 +81,11 @@ func (d *dummyRepo) GetTmeTermById(uuid string) (interface{}, error) {
 	return d.terms[0], d.err
 }
 
-func getDummyLocation(uuid string, prefLabel string, tmeId string) location {
+func getDummyLocation(uuid string, prefLabel string, tmeID string) location {
 	return location{
-		UUID:      uuid,
-		PrefLabel: prefLabel,
-		Type:      "Location",
-		AlternativeIdentifiers: alternativeIdentifiers{TME: []string{tmeId}, Uuids: []string{uuid}}}
+		UUID:                   uuid,
+		PrefLabel:              prefLabel,
+		PrimaryType:            primaryType,
+		TypeHierarchy:          locationTypes,
+		AlternativeIdentifiers: alternativeIdentifiers{TME: []string{tmeID}, Uuids: []string{uuid}}}
 }
