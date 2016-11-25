@@ -4,7 +4,8 @@ type location struct {
 	UUID                   string                 `json:"uuid"`
 	AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers,omitempty"`
 	PrefLabel              string                 `json:"prefLabel"`
-	Type                   string                 `json:"type"`
+	PrimaryType            string                 `json:"type"`
+	TypeHierarchy          []string               `json:"types"`
 }
 
 type alternativeIdentifiers struct {
@@ -15,3 +16,6 @@ type alternativeIdentifiers struct {
 type locationLink struct {
 	APIURL string `json:"apiUrl"`
 }
+
+var locationTypes = []string{"Thing", "Concept", "Location"}
+var primaryType = "Location"

@@ -15,7 +15,8 @@ func transformLocation(tmeTerm term, taxonomyName string) location {
 		UUID:                   uuid,
 		PrefLabel:              tmeTerm.CanonicalName,
 		AlternativeIdentifiers: alternativeIdentifiers{TME: []string{tmeIdentifier}, Uuids: []string{uuid}},
-		Type: "Location",
+		PrimaryType:            primaryType,
+		TypeHierarchy:          locationTypes,
 	}
 }
 

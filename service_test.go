@@ -83,8 +83,9 @@ func (d *dummyRepo) GetTmeTermById(uuid string) (interface{}, error) {
 
 func getDummyLocation(uuid string, prefLabel string, tmeID string) location {
 	return location{
-		UUID:      uuid,
-		PrefLabel: prefLabel,
-		Type:      "Location",
+		UUID:                   uuid,
+		PrefLabel:              prefLabel,
+		PrimaryType:            primaryType,
+		TypeHierarchy:          locationTypes,
 		AlternativeIdentifiers: alternativeIdentifiers{TME: []string{tmeID}, Uuids: []string{uuid}}}
 }
