@@ -3,6 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -12,10 +17,6 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 	"github.com/sethgrid/pester"
-	"net"
-	"net/http"
-	"os"
-	"time"
 )
 
 func init() {
@@ -127,7 +128,7 @@ func getResilientClient() *pester.Client {
 	}
 	c := &http.Client{
 		Transport: tr,
-		Timeout:   time.Duration(30 * time.Second),
+		Timeout:   30 * time.Second,
 	}
 	client := pester.NewExtendedClient(c)
 	client.Backoff = pester.ExponentialBackoff
