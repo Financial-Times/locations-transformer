@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/service-status-go/gtg"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -24,6 +25,14 @@ func (h *locationsHandler) HealthCheck() v1a.Check {
 		TechnicalSummary: "Cannot connect to TME to be able to supply locations",
 		Checker:          h.checker,
 	}
+}
+
+func (h *locationsHandler) G2GCheck() gtg.Status {
+	count := h.service.getLocationCount()
+	if count > 0 {
+		return gtg.Status{GoodToGo: true}
+	}
+	return gtg.Status{GoodToGo: false}
 }
 
 // Checker does more stuff
@@ -109,11 +118,4 @@ func writeJSONResponse(obj interface{}, found bool, writer http.ResponseWriter) 
 func writeJSONError(w http.ResponseWriter, errorMsg string, statusCode int) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintln(w, fmt.Sprintf("{\"message\": \"%s\"}", errorMsg))
-}
-
-//GoodToGo returns a 503 if the healthcheck fails - suitable for use from varnish to check availability of a node
-func (h *locationsHandler) GoodToGo(writer http.ResponseWriter, req *http.Request) {
-	if _, err := h.checker(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
 }

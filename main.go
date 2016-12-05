@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/service-status-go/gtg"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
@@ -94,8 +95,8 @@ func main() {
 		m.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 		m.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
 		m.HandleFunc("/__health", v1a.Handler("Locations Transformer Healthchecks", "Checks for accessing TME", h.HealthCheck()))
-		m.HandleFunc("/__gtg", h.GoodToGo)
-
+		g2gHandler := status.NewGoodToGoHandler(gtg.StatusChecker(h.G2GCheck))
+		m.HandleFunc(status.GTGPath, g2gHandler)
 		m.HandleFunc("/transformers/locations", h.getLocations).Methods("GET")
 		m.HandleFunc("/transformers/locations/__count", h.getCount).Methods("GET")
 		m.HandleFunc("/transformers/locations/__ids", h.getIds).Methods("GET")
