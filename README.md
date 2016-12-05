@@ -1,6 +1,6 @@
 # locations-transformer
 
-[![Circle CI](https://circleci.com/gh/Financial-Times/locations-transformer/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/locations-transformer/tree/master)
+[![CircleCI](https://circleci.com/gh/Financial-Times/locations-transformer.svg?style=svg)](https://circleci.com/gh/Financial-Times/locations-transformer) [![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/locations-transformer)](https://goreportcard.com/report/github.com/Financial-Times/locations-transformer) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/locations-transformer/badge.svg?branch=master)](https://coveralls.io/github/Financial-Times/locations-transformer?branch=master)
 
 Retrieves Locations taxonomy from TME and transforms the locations to the internal UP json model.
 The service exposes endpoints for getting all the locations and for getting location by uuid.
