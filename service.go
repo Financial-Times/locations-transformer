@@ -102,7 +102,13 @@ func (s *locationServiceImpl) getLocationCount() int {
 
 func (s *locationServiceImpl) getLocationIds() []string {
 	i := 0
-	lm := s.locationsMap.Load().(locationsMap)
+	val := s.locationsMap.Load()
+
+	if val == nil {
+		return make([]string, i)
+	}
+
+	lm := val.(locationsMap)
 	keys := make([]string, len(lm))
 
 	for k := range lm {

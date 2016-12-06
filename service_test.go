@@ -5,6 +5,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -122,6 +123,36 @@ func TestGetCount(t *testing.T) {
 		assert.Equal(t, len(test.locations), actualCount, fmt.Sprintf("%s: Expected locations count incorrect", test.name))
 		assert.Equal(t, test.err, err)
 	}
+}
+
+func TestGetLocationIds(t *testing.T) {
+	tests := []struct {
+		name      string
+		baseURL   string
+		terms     []term
+		locations []locationLink
+		found     bool
+		err       error
+	}{
+		{"Success", "localhost:8080/transformers/locations/",
+			[]term{{CanonicalName: "test_location", RawID: "b8337559-ac08-3404-9025-bad51ebe2fc7"}, {CanonicalName: "Feature", RawID: "mNGQ2MWQ0NDMtMDc5Mi00NWExLTlkMGQtNWZhZjk0NGExOWU2-Z2VucVz"}},
+			[]locationLink{{APIURL: "localhost:8080/transformers/locations/e559b6c0-2241-35b9-b970-e55cb8be4cba"},
+				{APIURL: "localhost:8080/transformers/locations/ab4861b5-ba5e-3b67-9871-3bb3e52db103"}}, true, nil},
+		{"Error on init", "localhost:8080/transformers/locations/", []term{}, []locationLink(nil), false, errors.New("Error getting taxonomy")},
+	}
+
+	for _, test := range tests {
+		repo := dummyRepo{terms: test.terms, err: test.err}
+		service, err := newLocationService(&repo, test.baseURL, "Locations", 10000)
+		actualIds := service.getLocationIds()
+		var expectedIDs = make([]string, len(test.locations))
+		for i, v := range test.locations {
+			expectedIDs[i] = strings.Split(v.APIURL, "/")[3]
+		}
+		assert.Equal(t, expectedIDs, actualIds, fmt.Sprintf("%s: Expected locations IDS incorrect", test.name))
+		assert.Equal(t, test.err, err)
+	}
+
 }
 
 func TestReload(t *testing.T) {
