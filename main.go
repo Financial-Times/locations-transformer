@@ -3,8 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/service-status-go/gtg"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
@@ -72,10 +74,29 @@ func main() {
 		Desc:   "Number of requests to be executed in parallel to TME",
 		EnvVar: "SLICES",
 	})
+	graphiteTCPAddress := app.String(cli.StringOpt{
+		Name:   "graphiteTCPAddress",
+		Value:  "",
+		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
+		EnvVar: "GRAPHITE_ADDRESS",
+	})
+	graphitePrefix := app.String(cli.StringOpt{
+		Name:   "graphitePrefix",
+		Value:  "",
+		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. content.test.public.content.by.concept.api.ftaps59382-law1a-eu-t",
+		EnvVar: "GRAPHITE_PREFIX",
+	})
+	logMetrics := app.Bool(cli.BoolOpt{
+		Name:   "logMetrics",
+		Value:  false,
+		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
+		EnvVar: "LOG_METRICS",
+	})
 
 	tmeTaxonomyName := "GL"
 
 	app.Action = func() {
+		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		client := getResilientClient()
 
 		mf := new(locationTransformer)
@@ -87,27 +108,29 @@ func main() {
 		h := newLocationsHandler(s)
 		m := mux.NewRouter()
 
-		// The top one of these feels more correct, but the lower one matches what we have in Dropwizard,
-		// so it's what apps expect currently same as ping
-		m.HandleFunc(status.PingPath, status.PingHandler)
-		m.HandleFunc(status.PingPathDW, status.PingHandler)
-		m.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
-		m.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
-		m.HandleFunc("/__health", v1a.Handler("Locations Transformer Healthchecks", "Checks for accessing TME", h.HealthCheck()))
-		m.HandleFunc("/__gtg", h.GoodToGo)
-
 		m.HandleFunc("/transformers/locations", h.getLocations).Methods("GET")
 		m.HandleFunc("/transformers/locations/__count", h.getCount).Methods("GET")
 		m.HandleFunc("/transformers/locations/__ids", h.getIds).Methods("GET")
 		m.HandleFunc("/transformers/locations/__reload", h.reload).Methods("POST")
-		m.HandleFunc("/transformers/locations/{uuid}", h.getLocationByUUID).Methods("GET")
+		m.HandleFunc("/transformers/locations/{uuid:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})}", h.getLocationByUUID).Methods("GET")
 
-		http.Handle("/", m)
+		var monitoringRouter http.Handler = m
+		monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+		monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+
+		http.HandleFunc(status.PingPath, status.PingHandler)
+		http.HandleFunc(status.PingPathDW, status.PingHandler)
+		http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+		http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
+
+		http.HandleFunc("/__health", v1a.Handler("Locations Transformer Healthchecks", "Checks for accessing TME", h.HealthCheck()))
+		g2gHandler := status.NewGoodToGoHandler(gtg.StatusChecker(h.G2GCheck))
+		http.HandleFunc(status.GTGPath, g2gHandler)
+
+		http.Handle("/", monitoringRouter)
 
 		log.Printf("listening on %d", *port)
-		err = http.ListenAndServe(fmt.Sprintf(":%d", *port),
-			httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
-				httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), m)))
+		err = http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
 		if err != nil {
 			log.Errorf("Error by listen and serve: %v", err.Error())
 		}

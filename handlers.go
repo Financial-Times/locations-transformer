@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/service-status-go/gtg"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -26,13 +28,19 @@ func (h *locationsHandler) HealthCheck() v1a.Check {
 	}
 }
 
-// Checker does more stuff
-func (h *locationsHandler) checker() (string, error) {
-	err := h.service.checkConnectivity()
-	if err == nil {
-		return "Connectivity to TME is ok", err
+func (h *locationsHandler) G2GCheck() gtg.Status {
+	count := h.service.getLocationCount()
+	if count > 0 {
+		return gtg.Status{GoodToGo: true}
 	}
-	return "Error connecting to TME", err
+	return gtg.Status{GoodToGo: false}
+}
+
+func (h *locationsHandler) checker() (string, error) {
+	if ls := h.service.getLoadStatus(); ls == ErrorLoadingData {
+		return "Error connecting to TME", errors.New("Got an error loading data from tme. Check logs.")
+	}
+	return "Connectivity to TME is ok", nil
 }
 
 func newLocationsHandler(service locationService) locationsHandler {
@@ -75,11 +83,23 @@ func (h *locationsHandler) getIds(writer http.ResponseWriter, req *http.Request)
 }
 
 func (h *locationsHandler) reload(writer http.ResponseWriter, req *http.Request) {
-	err := h.service.reload()
-	if err != nil {
-		log.Warnf("Problem reloading terms from TME: %v", err)
-		writer.WriteHeader(http.StatusInternalServerError)
+	writer.Header().Add("Content-Type", "application/json")
+	st := h.service.getLoadStatus()
+	if st == NotInit {
+		writeJSONError(writer, "Service Unavailable", http.StatusServiceUnavailable)
+		return
 	}
+	if st == LoadingData {
+		writeJSONError(writer, "Currently Loading Data", http.StatusConflict)
+		return
+	}
+	go func() {
+		err := h.service.reload()
+		if err != nil {
+			log.Warnf("Problem reloading terms from TME: %v", err)
+		}
+	}()
+	writeJSONError(writer, "Reloading people", http.StatusAccepted)
 }
 
 func (h *locationsHandler) getLocationByUUID(writer http.ResponseWriter, req *http.Request) {
@@ -109,11 +129,4 @@ func writeJSONResponse(obj interface{}, found bool, writer http.ResponseWriter) 
 func writeJSONError(w http.ResponseWriter, errorMsg string, statusCode int) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintln(w, fmt.Sprintf("{\"message\": \"%s\"}", errorMsg))
-}
-
-//GoodToGo returns a 503 if the healthcheck fails - suitable for use from varnish to check availability of a node
-func (h *locationsHandler) GoodToGo(writer http.ResponseWriter, req *http.Request) {
-	if _, err := h.checker(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
 }
