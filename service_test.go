@@ -72,31 +72,31 @@ func TestReloadChangesStatus(t *testing.T) {
 		err: nil}
 	service, err := newLocationService(&repo, "", "GL", 10000)
 	assert.NoError(t, err)
-	assert.True(t, service.isDataLoaded())
+	assert.Equal(t, DataLoaded, service.getLoadStatus())
 	repo.Add(1)
 	go func() {
 		assert.NoError(t, service.reload())
 	}()
 
 	for i := 1; i <= 1000; i++ {
-		if !service.isDataLoaded() {
+		if service.getLoadStatus() == LoadingData {
 			log.Info("Data not loaded")
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	assert.False(t, service.isDataLoaded())
+	assert.Equal(t, LoadingData, service.getLoadStatus())
 	repo.Done()
 
 	for i := 1; i <= 1000; i++ {
-		if service.isDataLoaded() {
+		if service.getLoadStatus() == DataLoaded {
 			log.Info("Data loaded")
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	assert.True(t, service.isDataLoaded())
+	assert.Equal(t, DataLoaded, service.getLoadStatus())
 
 }
 
@@ -145,11 +145,10 @@ func TestGetLocationIds(t *testing.T) {
 		repo := dummyRepo{terms: test.terms, err: test.err}
 		service, err := newLocationService(&repo, test.baseURL, "Locations", 10000)
 		actualIds := service.getLocationIds()
-		var expectedIDs = make([]string, len(test.locations))
-		for i, v := range test.locations {
-			expectedIDs[i] = strings.Split(v.APIURL, "/")[3]
+		for _, v := range test.locations {
+			expectedID := strings.Split(v.APIURL, "/")[3]
+			assert.Contains(t, actualIds, expectedID, fmt.Sprintf("%s: Expected locations IDS incorrect", test.name))
 		}
-		assert.Equal(t, expectedIDs, actualIds, fmt.Sprintf("%s: Expected locations IDS incorrect", test.name))
 		assert.Equal(t, test.err, err)
 	}
 

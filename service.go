@@ -19,8 +19,17 @@ type locationService interface {
 	getLocationCount() int
 	getLocationIds() []string
 	reload() error
-	isDataLoaded() bool
+	getLoadStatus() loadStatus
 }
+
+type loadStatus string
+
+const (
+	NotInit          = loadStatus("NotInit")
+	LoadingData      = loadStatus("Loading")
+	DataLoaded       = loadStatus("DataLoaded")
+	ErrorLoadingData = loadStatus("ErrorLoadingData")
+)
 
 type locationServiceImpl struct {
 	sync.Mutex
@@ -30,14 +39,18 @@ type locationServiceImpl struct {
 	locationLinks atomic.Value
 	taxonomyName  string
 	maxTmeRecords int
-	initialised   bool
+	status        atomic.Value
 }
 
 type locationsMap map[string]location
 type locationLinks []locationLink
 
-func (s *locationServiceImpl) isDataLoaded() bool {
-	return s.getLocationCount() > 0
+func (s *locationServiceImpl) getLoadStatus() loadStatus {
+	i := s.status.Load()
+	if i == nil {
+		return NotInit
+	}
+	return i.(loadStatus)
 }
 
 func newLocationService(repo tmereader.Repository, baseURL string, taxonomyName string, maxTmeRecords int) (locationService, error) {
@@ -123,6 +136,7 @@ func (s *locationServiceImpl) reload() error {
 	defer s.Unlock()
 	s.locationsMap.Store(make(locationsMap))
 	s.locationLinks.Store(make(locationLinks, 0))
+	s.status.Store(LoadingData)
 	responseCount := 0
 	log.Println("Fetching locations from TME")
 
@@ -132,6 +146,7 @@ func (s *locationServiceImpl) reload() error {
 		terms, err := s.repository.GetTmeTermsFromIndex(responseCount)
 		if err != nil {
 			log.Warnf("Got an error loading data from tme '%v'", err)
+			s.status.Store(ErrorLoadingData)
 			return err
 		}
 
@@ -153,6 +168,7 @@ func (s *locationServiceImpl) reload() error {
 	}
 	s.locationsMap.Store(tempLocationsMap)
 	s.locationLinks.Store(tempLocationLinks)
+	s.status.Store(DataLoaded)
 	log.Infof("Added %d location links\n", s.getLocationCount())
 	return nil
 }

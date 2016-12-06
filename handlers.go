@@ -84,11 +84,23 @@ func (h *locationsHandler) getIds(writer http.ResponseWriter, req *http.Request)
 }
 
 func (h *locationsHandler) reload(writer http.ResponseWriter, req *http.Request) {
-	err := h.service.reload()
-	if err != nil {
-		log.Warnf("Problem reloading terms from TME: %v", err)
-		writer.WriteHeader(http.StatusInternalServerError)
+	writer.Header().Add("Content-Type", "application/json")
+	st := h.service.getLoadStatus()
+	if st == NotInit {
+		writeJSONError(writer, "Service Unavailable", http.StatusServiceUnavailable)
+		return
 	}
+	if st == LoadingData {
+		writeJSONError(writer, "Currently Loading Data", http.StatusConflict)
+		return
+	}
+	go func() {
+		err := h.service.reload()
+		if err != nil {
+			log.Warnf("Problem reloading terms from TME: %v", err)
+		}
+	}()
+	writeJSONError(writer, "Reloading people", http.StatusAccepted)
 }
 
 func (h *locationsHandler) getLocationByUUID(writer http.ResponseWriter, req *http.Request) {
