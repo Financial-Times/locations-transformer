@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/service-status-go/gtg"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -40,13 +42,24 @@ func TestHandlers(t *testing.T) {
 		{"Reload - Good", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: DataLoaded}, http.StatusAccepted, "application/json", "{\"message\": \"Reloading people\"}"},
 		{"Reload - Conflict", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: LoadingData}, http.StatusConflict, "application/json", "{\"message\": \"Currently Loading Data\"}"},
 		{"Reload - Fail", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: NotInit}, http.StatusServiceUnavailable, "application/json", "{\"message\": \"Service Unavailable\"}"},
+		{"Health - Good", newRequest("GET", "/__health"), &dummyService{dataLoaded: DataLoaded}, http.StatusOK, "application/json", "regex=Check connectivity to TME\",\"ok\":true"},
+		{"Health - Bad", newRequest("GET", "/__health"), &dummyService{dataLoaded: ErrorLoadingData}, http.StatusOK, "application/json", "regex=Got an error loading data from tme. Check logs"},
 	}
 
 	for _, test := range tests {
 		rec := httptest.NewRecorder()
 		router(test.dummyService).ServeHTTP(rec, test.req)
 		assert.True(t, test.statusCode == rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
-		assert.Equal(t, strings.TrimSpace(test.body), strings.TrimSpace(rec.Body.String()), fmt.Sprintf("%s: Wrong body", test.name))
+
+		if strings.HasPrefix(test.body, "regex=") {
+			regex := strings.TrimPrefix(test.body, "regex=")
+			body := rec.Body.String()
+			matched, err := regexp.MatchString(regex, body)
+			assert.NoError(t, err)
+			assert.True(t, matched, fmt.Sprintf("Could not match regex:\n %s \nin body:\n %s", regex, body))
+		} else {
+			assert.Equal(t, strings.TrimSpace(test.body), strings.TrimSpace(rec.Body.String()), fmt.Sprintf("%s: Wrong body", test.name))
+		}
 	}
 }
 
@@ -68,6 +81,7 @@ func router(s locationService) *mux.Router {
 	m.HandleFunc("/transformers/locations/{uuid}", h.getLocationByUUID).Methods("GET")
 	g2gHandler := status.NewGoodToGoHandler(gtg.StatusChecker(h.G2GCheck))
 	m.HandleFunc(status.GTGPath, g2gHandler)
+	m.HandleFunc("/__health", v1a.Handler("Locations Transformer Healthchecks", "Checks for accessing TME", h.HealthCheck()))
 	return m
 }
 
@@ -88,10 +102,6 @@ func (s *dummyService) getLocations() ([]locationLink, bool) {
 
 func (s *dummyService) getLocationByUUID(uuid string) (location, bool) {
 	return s.locations[0], s.found
-}
-
-func (s *dummyService) checkConnectivity() error {
-	return nil
 }
 
 func (s *dummyService) getLocationCount() int {

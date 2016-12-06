@@ -15,7 +15,6 @@ type httpClient interface {
 type locationService interface {
 	getLocations() ([]locationLink, bool)
 	getLocationByUUID(uuid string) (location, bool)
-	checkConnectivity() error
 	getLocationCount() int
 	getLocationIds() []string
 	reload() error
@@ -82,15 +81,6 @@ func (s *locationServiceImpl) getLocationByUUID(uuid string) (location, bool) {
 		return location, found
 	}
 	return location{}, false
-}
-
-func (s *locationServiceImpl) checkConnectivity() error {
-	// TODO: Can we just hit an endpoint to check if TME is available? Or do we need to make sure we get location taxonmies back?
-	//	_, err := s.repository.GetTmeTermsFromIndex()
-	//	if err != nil {
-	//		return err
-	//	}
-	return nil
 }
 
 func (s *locationServiceImpl) initLocationsMap(terms []interface{}) (map[string]location, []locationLink) {

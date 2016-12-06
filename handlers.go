@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/service-status-go/gtg"
@@ -35,13 +36,11 @@ func (h *locationsHandler) G2GCheck() gtg.Status {
 	return gtg.Status{GoodToGo: false}
 }
 
-// Checker does more stuff
 func (h *locationsHandler) checker() (string, error) {
-	err := h.service.checkConnectivity()
-	if err == nil {
-		return "Connectivity to TME is ok", err
+	if ls := h.service.getLoadStatus(); ls == ErrorLoadingData {
+		return "Error connecting to TME", errors.New("Got an error loading data from tme. Check logs.")
 	}
-	return "Error connecting to TME", err
+	return "Connectivity to TME is ok", nil
 }
 
 func newLocationsHandler(service locationService) locationsHandler {
