@@ -39,7 +39,7 @@ func TestHandlers(t *testing.T) {
 		{"Test Location Ids", newRequest("GET", "/transformers/locations/__ids"), &dummyService{found: true, locations: []location{{UUID: testUUID}}}, http.StatusOK, "text/plain", getLocationsIdsResponse},
 		{"Test GTG - Pass", newRequest("GET", status.GTGPath), &dummyService{found: true, locations: []location{{UUID: testUUID}}}, http.StatusOK, "application/json", "OK"},
 		{"Test GTG - Fail", newRequest("GET", status.GTGPath), &dummyService{found: true, locations: []location(nil)}, http.StatusServiceUnavailable, "application/json", ""},
-		{"Reload - Good", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: DataLoaded}, http.StatusAccepted, "application/json", "{\"message\": \"Reloading people\"}"},
+		{"Reload - Good", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: DataLoaded}, http.StatusAccepted, "application/json", "{\"message\": \"Reloading locations\"}"},
 		{"Reload - Conflict", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: LoadingData}, http.StatusConflict, "application/json", "{\"message\": \"Currently Loading Data\"}"},
 		{"Reload - Fail", newRequest("POST", "/transformers/locations/__reload"), &dummyService{dataLoaded: NotInit}, http.StatusServiceUnavailable, "application/json", "{\"message\": \"Service Unavailable\"}"},
 		{"Health - Good", newRequest("GET", "/__health"), &dummyService{dataLoaded: DataLoaded}, http.StatusOK, "application/json", "regex=Check connectivity to TME\",\"ok\":true"},

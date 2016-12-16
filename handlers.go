@@ -99,7 +99,7 @@ func (h *locationsHandler) reload(writer http.ResponseWriter, req *http.Request)
 			log.Warnf("Problem reloading terms from TME: %v", err)
 		}
 	}()
-	writeJSONError(writer, "Reloading people", http.StatusAccepted)
+	writeJSONError(writer, "Reloading locations", http.StatusAccepted)
 }
 
 func (h *locationsHandler) getLocationByUUID(writer http.ResponseWriter, req *http.Request) {
