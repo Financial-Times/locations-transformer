@@ -1,3 +1,6 @@
+*DECOMISSIONED*
+See [Basic TME Transformer](https://github.com/Financial-Times/basic-tme-transformer) instead
+
 # locations-transformer
 
 [![CircleCI](https://circleci.com/gh/Financial-Times/locations-transformer.svg?style=svg)](https://circleci.com/gh/Financial-Times/locations-transformer) [![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/locations-transformer)](https://goreportcard.com/report/github.com/Financial-Times/locations-transformer) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/locations-transformer/badge.svg?branch=master)](https://coveralls.io/github/Financial-Times/locations-transformer?branch=master)
